@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="uk">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Кінотеатр</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="/public/css/main.css">
+    <style>
+        .filters-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            align-items: center;
+            background-color: snow;
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin-top: .75%;
+        }
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        .filter-group label {
+            text-align: center;
+            font-family: Verdana, Geneva, Tahoma, sans-serif;
+            font-size: 14px;
+            font-weight: 600;
+            color: #222;
+        }
+        .filter-group select {
+            font-family: Verdana, Geneva, Tahoma, sans-serif;
+            padding: 8px 12px;
+            border: 1px solid #ced4da;
+            border-radius: 5px;
+            background-color: white;
+            font-size: 14px;
+            color: #333;
+            min-width: 180px;
+            cursor: pointer;
+            transition: border-color 0.2s;
+        }
+        .filter-group select:focus {
+            border-color: royalblue;
+            outline: none;
+        }
+        #reset-btn {
+            font-family: Verdana, Geneva, Tahoma, sans-serif;
+            background: snow;
+            padding: 8px 12px;
+            cursor: pointer;
+            border-radius: 5px;
+            border: 1px solid gainsboro;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div><strong>Фільм</strong></div>
+        <nav>Фільм &nbsp; <a href="/cinema">Кінотеатр</a> 
+            &nbsp; 
+            <% if (user) { %>
+            <a href="/film/statistic" target="_blank">Найпопулярніші фільми</a>
+            &nbsp; 
+            <a href="/session/statistic" target="_blank">Сеанси за місяцями</a>
+            <% } %>
+            <% if (!user) { %>
+            &nbsp; 
+            <a href="javascript:void(0)" class="account" onclick="openAuth()">
+                <i class="bi bi-person-circle"></i> Увійти
+            </a>
+            <% } else { %>
+            &nbsp; 
+            <a href="javascript:void(0)" class="account" onclick="handleLogout()">
+                Вийти <i class="bi bi-box-arrow-right"></i>
+            </a>
+            <% } %>
+        </nav>
+    </header>
+    <div class="first_div">
+        <h1>Список фільмів</h1>
+        <a href="/film/add_film">
+            <% if ([2, 3].includes(user?.role) ) { %>
+            <button class="add_btn" style="font-size: 20px;">
+                <i class="bi bi-plus"></i>
+            </button>
+            <% } %>
+        </a>
+
+        <div class="filters-container">
+            <div class="filter-group">
+                <label for="genreFilter">Фільтр за жанром</label>
+                <select id="genreFilter" onchange="filterTable()">
+                    <option value="">Всі жанри</option>
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label for="countryFilter">Фільтр за країною</label>
+                <select id="countryFilter" onchange="filterTable()">
+                    <option value="">Всі країни</option>
+                </select>
+            </div>
+            
+            <div style="margin-top: 3.75%;">
+                <button id="reset-btn" onclick="resetFilters()">Скинути</button>
+            </div>
+        </div>
+
+        <div class="search-container">
+            <input class="search-input" type="text" id="filmSearch" placeholder="Пошук за назвою">
+        </div>
+    </div>
+    <div class="container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Назва фільму</th>
+                    <th>Жанр</th>
+                    <th>Країна</th>
+                    <th onclick="sortTable(7)" style="cursor: pointer;">
+                        Рік випуску <i class="sort-icon"></i>
+                    </th>
+                    <th onclick="sortTable(8)" style="cursor: pointer;">
+                        Рейтинг <i class="sort-icon"></i>
+                    </th>
+                    <th></th>
+                    <th></th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody id="data-table">
+                <% films.forEach(film => { %>
+                    <% if (user) { %>
+                    <tr onclick="window.location.href='/session/film/<%= film.film_id %>'" style="cursor: pointer;">
+                    <% } else { %> <tr> <% } %>
+                        <td><%= film.title %></td>
+                        <td><%= film.genre %></td>
+                        <td><%= film.country %></td>
+                        <td><%= film.release_year %></td>
+                        <td><%= film.rating %></td>
+                        <td>
+                            <a href="/film/<%= film.film_id %>" onclick="event.stopPropagation();" target="_blank">
+                                <button type="button" class="custom-info-btn primary_btn">
+                                    <i class="bi bi-info-circle"></i>
+                                </button>
+                            </a>
+                        </td>
+                        <% if ( [2].includes(user?.role)) { %>
+                        <td>
+                            <a href="/film/<%= film.film_id %>/update" onclick="event.stopPropagation();">
+                                <button type="button" class="custom-update-btn">
+                                    <i class="bi bi-pencil-square"></i>
+                                </button>
+                            </a>
+                        </td>
+                        <td>
+                            <button type="button"
+                                    onclick="event.stopPropagation(); makeRequest('/film/<%= film.film_id %>/delete', 'DELETE')"
+                                    class="custom-delete-btn">
+                                <i class="bi-cart"></i>
+                            </button>
+                        </td>
+                        <% } %>
+                    </tr>
+                <% }); %>
+            </tbody>
+        </table>
+    </div>
+    <div id="authModal" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeAuth()">&times;</span>
+
+            <div id="loginForm">
+                <h2>Вхід</h2>
+                <input type="email" id="loginEmail" placeholder="Email" class="auth-input">
+                <input type="password" id="loginPass" placeholder="Пароль" class="auth-input">
+                <button class="custom-info-btn form-btn" onclick="handleLogin()">
+                        Увійти
+                </button>
+                <p class="form-type-p">
+                    Немає акаунта? <a href="javascript:void(0)" onclick="toggleAuth('register')">Реєстрація</a>
+                </p>
+            </div>
+
+            <div id="registerForm" style="display: none;">
+                <h2>Реєстрація</h2>
+                <input type="text" id="regName" placeholder="Ім'я" class="auth-input" required>
+                <input type="text" id="regSurname" placeholder="Прізвище" class="auth-input">
+                <input type="email" id="regEmail" placeholder="Email" class="auth-input" required>
+                <input type="password" id="regPass" placeholder="Пароль" class="auth-input" required>
+                <button type="submit" class="add_btn form-btn" onclick="handleRegister()">Створити акаунт</button>
+                <p class="form-type-p">
+                    Вже є акаунт? <a href="javascript:void(0)" onclick="toggleAuth('login')">Увійти</a>
+                </p>
+            </div>
+        </div>
+    </div>
+    <script src="/public/js/main.js"></script>
+    <script>
+        function sortTable(columnIndex) {
+            columnIndex -= 4;
+
+            const table = document.querySelector("table");
+            const tbody = table.querySelector("tbody");
+            const rows = Array.from(tbody.rows);
+            const headers = table.querySelectorAll("th");
+
+            const isAsc = table.getAttribute("data-sort-col") == columnIndex &&
+                table.getAttribute("data-sort-dir") == "asc";
+            const direction = isAsc ? "desc" : "asc";
+
+            rows.sort((a, b) => {
+                const valA = parseFloat(a.cells[columnIndex].textContent) || 0;
+                const valB = parseFloat(b.cells[columnIndex].textContent) || 0;
+                return direction == "asc" ? valA - valB : valB - valA;
+            });
+
+            table.setAttribute("data-sort-col", columnIndex);
+            table.setAttribute("data-sort-dir", direction);
+
+            headers.forEach((th, index) => {
+                if (index == columnIndex) {
+                    th.classList.add("active-sort");
+                    const icon = th.querySelector(".sort-icon");
+                    icon.className = direction == "asc"
+                        ? "bi bi-caret-up-fill sort-icon text-primary"
+                        : "bi bi-caret-down-fill sort-icon text-primary";
+                } else {
+                    th.classList.remove("active-sort");
+                }
+            });
+            tbody.append(...rows);
+        }
+
+        function filtersOptions() {
+            const tbody = document.querySelector("table tbody");
+            const rows = Array.from(tbody.rows);
+
+            const genres = new Set();
+            const countries = new Set();
+
+            rows.forEach(row => {
+                const genreText = row.cells[1].innerText.trim();
+                const countryText = row.cells[2].innerText.trim();
+
+                genreText.split(', ').forEach(g => { if (g.trim()) genres.add(g.trim()); });
+                countryText.split(', ').forEach(c => { if (c.trim()) countries.add(c.trim()); });
+            });
+
+            const genreSelect = document.getElementById('genreFilter');
+            const countrySelect = document.getElementById('countryFilter');
+
+            Array.from(genres).sort().forEach(g => genreSelect.innerHTML += `<option value="${g}">${g}</option>`);
+            Array.from(countries).sort().forEach(c => countrySelect.innerHTML += `<option value="${c}">${c}</option>`);
+        }
+
+        function filterTable() {
+            const sGenre = document.getElementById('genreFilter').value;
+            const sCountry = document.getElementById('countryFilter').value;
+
+            const rows = document.querySelectorAll("table tbody tr");
+
+            rows.forEach(row => {
+                const rowGenre = row.cells[1].innerText.trim();
+                const rowCountry = row.cells[2].innerText.trim();
+
+                const gMatch = sGenre == "" || rowGenre.includes(sGenre);
+                const cMatch = sCountry == "" || rowCountry.includes(sCountry);
+
+                gMatch && cMatch ? row.style.display = "" : row.style.display = "none";
+            });
+        }
+
+        function resetFilters() {
+            document.getElementById('genreFilter').value = "";
+            document.getElementById('countryFilter').value = "";
+            document.getElementById('filmSearch').value = "";
+            filterTable();
+        }
+
+        window.onload = filtersOptions;
+    </script>
+</body>
+</html>
